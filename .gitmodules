@@ -1,0 +1,6 @@
+[submodule "BrickPi"]
+	path = BrickPi
+	url = https://github.com/ArVID220u/BrickPi
+[submodule "nxt-python"]
+	path = nxt-python
+	url = https://github.com/ArVID220u/nxt-python
