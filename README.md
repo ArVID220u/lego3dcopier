@@ -14,4 +14,4 @@ Enable USB: Run `groupadd lego` followed by `usermod -a -G lego <username>`. The
 
 After all this, reboot.
 
-Then modify the `nxt-python.config` file. Symlink it to the real config file using `ln -s nxt-python.config ~/.nxt-python`.
+Then modify the `nxt-python.config` file. Symlink it to the real config file using `ln -s ~/lego3dcopier/nxt-python.config ~/.nxt-python`.
