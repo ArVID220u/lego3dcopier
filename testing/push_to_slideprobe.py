@@ -18,6 +18,7 @@ while True:
 
     if not result:
         if BrickPi.Sensor[touch]:
+            # 57 degrees is better, so I would suggest to change the 110 to 114
             set_target_encoder(motor1, BrickPi.Encoder[motor1] + 110, 150)
         else:
             set_target_encoder(motor1, BrickPi.Encoder[motor1] - 110, 150)

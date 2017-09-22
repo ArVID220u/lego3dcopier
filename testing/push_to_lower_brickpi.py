@@ -5,8 +5,8 @@ import time
 
 bp.BrickPiSetup()
 
-touch = bp.PORT_4
-motor = bp.PORT_A
+touch = bp.PORT_3
+motor = bp.PORT_D
 
 bp.BrickPi.SensorType[touch] = bp.TYPE_SENSOR_TOUCH
 
