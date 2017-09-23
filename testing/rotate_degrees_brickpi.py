@@ -5,7 +5,7 @@ import BrickPi as brickpi
 
 brickpi.BrickPiSetup()
 
-motor = brickpi.PORT_C
+motor = brickpi.PORT_A
 
 brickpi.BrickPi.MotorEnable[motor] = 1
 brickpi.BrickPiUpdateValues()
