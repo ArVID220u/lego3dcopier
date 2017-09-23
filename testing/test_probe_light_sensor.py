@@ -19,6 +19,7 @@ while True:
     result = bp.BrickPiUpdateValues()  # Ask BrickPi to update values for sensors/motors 
     if not result:
         val = bp.BrickPi.Sensor[color]     #BrickPi.Sensor[PORT] stores the value obtained from sensor
+        print(val)
         if val > 110 and not inn:
             inn = True
             print("In!")
