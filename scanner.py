@@ -39,11 +39,18 @@ def scan():
     # don't stop scanning immediately
     stop_scanning = False
 
+    # let w be the width
+    w = 12
+
     # iterate over each layer
+    # we don't simply sweep with the probe over each layer, because that would be too costly
+    # instead, we save the leftmost and rightmost non-zero positions, and start checking them
+    # the performance improvement is all about this realization: if a row is enclosed with zero-rows, it has to be a zero-row itself
+    # therefore, for each direction, save the leftmost and rightmost non-zero positions
+    # we start at 1 and w-1
+    nonzeros = [(1, w-1), (1, w-1), (1, w-1), (1, w-1)]
     for z in range(19):
 
-        # let w be the width
-        w = 12
 
         layer = []
         # initialize the layer with -1s
@@ -69,34 +76,65 @@ def scan():
                 # the slide probe assumes regular position, minus 60
                 xmovement = XMovement(setup.slide_probe_port)
 
-                for x in range(w):
-                    # we cannot scan the x=0, but since that is unnecessary, it's not a problem
-                    if x == 0:
-                        continue
-                    # we also do not care about scanning x = w-1, since that is also unnecessary (by symmetry)
-                    if x == w-1:
-                        continue
-                    # set xmovement position
-                    xmovement.set_position(x)
-                    
-                    # get the endpos
+                # now, go to the leftmost nonzero, and continue leftwards until a zero is found
+                curpos = nonzeros[direction][0]
+                newleftmost = w
+                newrightmost = 0
+                # we only go to position 1
+                while curpos >= 1:
+                    xmovement.set_position(curpos)
                     endpos = ymovement.find_first_block()
-                    # endpos is -1 if no brick is found
+                    # halfreset ymovement
+                    ymovement.halfreset()
                     if endpos == -1:
+                        # now stop
                         for y in range(w):
-                            layer[x][y] = 0
+                            layer[curpos][y] = 0
+                        # also zero all other rows to the left
+                        for x in range(curpos):
+                            for y in range(w):
+                                layer[x][y] = 0
+                        break
                     else:
                         # set all before to 0, and the endpos to 1
                         if endpos > 0:
                             for y in range(endpos):
-                                layer[x][y] = 0
-                        layer[x][endpos] = 1
-                    # halfreset ymovement
+                                layer[curpos][y] = 0
+                        layer[curpos][endpos] = 1
+                        # also update newleftmost
+                        newleftmost = min(newleftmost, curpos)
+                        newrightmost = max(newrightmost, curpos)
+                    curpos -= 1
+
+                
+                # now, scan from old leftmost + 1 until first zero after rightmost
+                curpos = nonzeros[direction][0] + 1
+                while curpos < w-1:
+                    xmovement.set_position(curpos)
+                    endpos = ymovement.find_first_block()
                     ymovement.halfreset()
-                    # check if abortion
-                    check_if_abort(xmovement, rotation, height)
-
-
+                    if endpos == -1:
+                        for y in range(w):
+                            layer[curpos][y] = 0
+                        if curpos >= nonzeros[direction][1]:
+                            # now stop
+                            # zero all other rows to right
+                            for x in range(curpos+1,w):
+                                for y in range(w):
+                                    layer[x][y] = 0
+                            break
+                    else:
+                        # set all before to 0, and the endpos to 1
+                        if endpos > 0:
+                            for y in range(endpos):
+                                layer[curpos][y] = 0
+                        layer[curpos][endpos] = 1
+                        # also update newleftmost
+                        newleftmost = min(newleftmost, curpos)
+                        newrightmost = max(newrightmost, curpos)
+                            
+                # now update the nonzeros
+                nonzeros[direction] = (newleftmost, newrightmost)
 
                 # full reset the ymvoement
                 ymovement.reset()
@@ -116,6 +154,24 @@ def scan():
                         print(str(s) + " ", end="")
                     print(" ")
 
+            # fix corners
+            # if the corners have a zero as neighbor, then it is a zero; otherwise, it is a one
+            if layer[0][1] == 0 or layer[1][0] == 0:
+                layer[0][0] = 0
+            else:
+                layer[0][0] = 1
+            if layer[0][w-2] == 0 or layer[1][w-1] == 0:
+                layer[0][w-1] = 0
+            else:
+                layer[0][w-1] = 1
+            if layer[w-2][0] == 0 or layer[w-1][1] == 0:
+                layer[w-1][0] = 0
+            else:
+                layer[w-1][0] = 1
+            if layer[w-2][w-1] == 0 or layer[w-1][w-2] == 0:
+                layer[w-1][w-1] = 0
+            else:
+                layer[w-1][w-1] = 1
 
 
             # check if layer is empty. if that is so, don't scan the rest of the layers
