@@ -47,8 +47,8 @@ def scan():
     # instead, we save the leftmost and rightmost non-zero positions, and start checking them
     # the performance improvement is all about this realization: if a row is enclosed with zero-rows, it has to be a zero-row itself
     # therefore, for each direction, save the leftmost and rightmost non-zero positions
-    # we start at 1 and w-1
-    nonzeros = [(1, w-1), (1, w-1), (1, w-1), (1, w-1)]
+    # we start at 1 and w-2
+    nonzeros = [(1, w-2), (1, w-2), (1, w-2), (1, w-2)]
     for z in range(19):
 
 
@@ -69,7 +69,7 @@ def scan():
                 # the y coordinate is along eject_probe axis, increasing away from probe
 
                 bp.BrickPi.MotorEnable[setup.slide_probe_port] = 1
-                bp.set_target_encoder(setup.slide_probe_port, bp.BrickPi.Encoder[setup.slide_probe_port] - 80, 150)
+                bp.set_target_encoder(setup.slide_probe_port, bp.BrickPi.Encoder[setup.slide_probe_port] - 75, 150)
                 ymovement.calibrate()
                 bp.BrickPi.MotorEnable[setup.slide_probe_port] = 0
 
@@ -132,6 +132,7 @@ def scan():
                         # also update newleftmost
                         newleftmost = min(newleftmost, curpos)
                         newrightmost = max(newrightmost, curpos)
+                    curpos += 1
                             
                 # now update the nonzeros
                 nonzeros[direction] = (newleftmost, newrightmost)
@@ -225,7 +226,7 @@ class YMovement:
         # we assume x position is 12, 13 or 14
         # that is, we just move until we get to first stop, and that first stop is position -7
         # Then, the stud distance is roughly 1460
-        stud_distance = 1440
+        stud_distance = 1450
         stop_position = self.move_till_stop(foolhardy=True)
         self.positions = []
         for y in range(-7, 11):
@@ -280,23 +281,25 @@ class YMovement:
     def halfreset(self):
         # move probe to regular position
         bp.BrickPi.MotorEnable[self.motor_port] = 1
-        try:
-            bp.set_target_encoder(self.motor_port, self.positions[5], 200)
-        except:
-            print("strange exception")
-            time.sleep(5)
-            bp.set_target_encoder(self.motor_port, self.positions[5], 200)
+        for i in range(5):
+            try:
+                bp.set_target_encoder(self.motor_port, self.positions[5], 200)
+                break
+            except:
+                print("strange exception")
+                time.sleep(5)
         bp.BrickPi.MotorEnable[self.motor_port] = 0
 
     def reset(self):
         # move probe to regular position
         bp.BrickPi.MotorEnable[self.motor_port] = 1
-        try:
-            bp.set_target_encoder(self.motor_port, self.regular_position, 200)
-        except:
-            print("strange exception")
-            time.sleep(5)
-            bp.set_target_encoder(self.motor_port, self.regular_position, 200)
+        for i in range(5):
+            try:
+                bp.set_target_encoder(self.motor_port, self.regular_position, 200)
+                break
+            except:
+                print("strange exception")
+                time.sleep(5)
         bp.BrickPi.MotorEnable[self.motor_port] = 0
 
 
@@ -321,7 +324,7 @@ class XMovement:
         except:
             pass
         bp.BrickPiUpdateValues()
-        position1encoder = bp.BrickPi.Encoder[self.port] + 65
+        position1encoder = bp.BrickPi.Encoder[self.port] + 70
         bp.BrickPi.MotorEnable[self.port] = 0
 
         # now, calculate stud distance
@@ -342,12 +345,13 @@ class XMovement:
     def set_position(self, position):
         bp.BrickPi.MotorEnable[self.port] = 1
         bp.BrickPiUpdateValues()
-        try:
-            bp.set_target_encoder(self.port, self.positions[position], 150)
-        except:
-            print("strange exception")
-            time.sleep(5)
-            bp.set_target_encoder(self.port, self.positions[position], 150)
+        for i in range(5):
+            try:
+                bp.set_target_encoder(self.port, self.positions[position], 150)
+                break
+            except:
+                print("strange exception")
+                time.sleep(5)
         bp.BrickPi.MotorEnable[self.port] = 0
         bp.BrickPiUpdateValues()
         self.current_position = position
@@ -378,8 +382,16 @@ class Rotation:
         for i in range(4):
             # one revolution is 720 units
             # 14 revolutions are needed for a 90 degree turn
-            self.positions.append(bp.BrickPi.Encoder[self.port] + i*14*720)
+            # Add slightly more, due to some degrees of freedom that alter these values
+            position = bp.BrickPi.Encoder[self.port] + i*14*720
+            if i > 0:
+                position += 200
+            self.positions.append(position)
         self.current_position = 0
+        # we set position to 1 and then back to 0, so that we reset any eventual wrongdoings
+        self.set_position(1)
+        time.sleep(2)
+        self.set_position(0)
 
     def set_position(self, position):
         bp.BrickPi.MotorEnable[self.port] = 1
