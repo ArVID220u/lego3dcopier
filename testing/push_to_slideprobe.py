@@ -25,4 +25,3 @@ while True:
 
     print("degrees: " + str(BrickPi.Encoder[motor1]))
 
-    time.sleep(1)
