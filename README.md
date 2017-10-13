@@ -6,7 +6,7 @@ The code for a Lego Mindstorms robot that scans a Lego construction and proceeds
 
 Install BrickPi.
 
-Install nxt-python using `python3 nxt-python/setup.py install`.
+Install nxt-python using `./nxt-python/install.sh`.
 
 Install PyUSB using `pip3 install pyusb`.
 
