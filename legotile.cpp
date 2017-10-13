@@ -42,6 +42,127 @@ struct Crevice {
 };
 
 
+struct UF {
+
+    int n;
+    vi rank;
+    vi p;
+
+    UF(int nn) {
+        n = nn;
+        rank.assign(n, 0);
+        rep(i,0,n)
+            p.push_back(i);
+    }
+
+    int find(int a) {
+        if (p[a] != a)
+            p[a] = find(p[a]);
+        return p[a];
+    }
+
+    void uni(int a, int b) {
+        int pa = find(a);
+        int pb = find(b);
+
+        if (rank[pa] < rank[pb]) {
+            p[pa] = pb;
+        } else {
+            p[pb] = pa;
+            if (rank[pa] == rank[pb]) {
+                rank[pa]++;
+            }
+        }
+    }
+};
+
+int uf_index(int i, int j) {
+    return s*i+j;
+}
+
+        
+
+
+int calculate_connected_components(vector<vi>& layer1, vector<vi>& layer2) {
+    // use a unionfind
+    UF uf = UF(uf_index(s,s));
+    // we use layer2 to check the number of components later
+    map<int, int> layer1m;
+    rep(i,0,s) rep(j,0,s) {
+        if (layer1[i][j] != 0) {
+            auto f = layer1m.find(layer1[i][j]);
+            if (f != layer1m.end()) {
+                uf.uni(uf_index(i,j), f->second);
+            } else {
+                layer1m.insert(make_pair(layer1[i][j], uf_index(i,j)));
+            }
+        }
+    }
+    map<int, int> layer2m;
+    rep(i,0,s) rep(j,0,s) {
+        if (layer2[i][j] != 0) {
+            auto f = layer2m.find(layer2[i][j]);
+            if (f != layer2m.end()) {
+                uf.uni(uf_index(i,j), f->second);
+            } else {
+                layer2m.insert(make_pair(layer2[i][j], uf_index(i,j)));
+            }
+        }
+    }
+
+    // now, we have unioned all bricks
+    // check how many different components we have in layer2
+    set<int> components;
+    rep(i,0,s) rep(j,0,s) {
+        if (layer2[i][j]) {
+            components.insert(uf.find(uf_index(i,j)));
+        }
+    }
+    return components.size();
+
+}
+
+int all_calculate_connected_components(vector<vector<vi>>& layers, vector<vi>& layer2) {
+    // use a unionfind
+    UF uf = UF(uf_index(s,s));
+    // we use layer2 to check the number of components later
+    for (auto& layer1 : layers) {
+        map<int, int> layer1m;
+        rep(i,0,s) rep(j,0,s) {
+            if (layer1[i][j] != 0) {
+                auto f = layer1m.find(layer1[i][j]);
+                if (f != layer1m.end()) {
+                    uf.uni(uf_index(i,j), f->second);
+                } else {
+                    layer1m.insert(make_pair(layer1[i][j], uf_index(i,j)));
+                }
+            }
+        }
+    }
+    map<int, int> layer2m;
+    rep(i,0,s) rep(j,0,s) {
+        if (layer2[i][j] != 0) {
+            auto f = layer2m.find(layer2[i][j]);
+            if (f != layer2m.end()) {
+                uf.uni(uf_index(i,j), f->second);
+            } else {
+                layer2m.insert(make_pair(layer2[i][j], uf_index(i,j)));
+            }
+        }
+    }
+
+    // now, we have unioned all bricks
+    // check how many different components we have in layer2
+    set<int> components;
+    rep(i,0,s) rep(j,0,s) {
+        if (layer2[i][j]) {
+            components.insert(uf.find(uf_index(i,j)));
+        }
+    }
+    return components.size();
+
+}
+
 
 
 int main()
@@ -191,9 +312,8 @@ int main()
             if (lastcorner.i == s) {
                 // YAY WE FOUND IT
                 // THIS IS OUR LAYER
-                // We now break, and let chosen_layer be tis layer
-                chosen_layer = current_layer;
                 cout << "WE CHOSE A LAYER" << endl;
+                chosen_layer = current_layer;
                 break;
             }
 
@@ -237,9 +357,25 @@ int main()
                             // CHANGE BEST ONE
                             layer_queue.erase(make_pair(exist_layer->second, exist_layer->first));
                             layer_penalty[new_layer.remaining] = new_layer.penalty;
-                            layer_queue.erase(make_pair(new_layer.penalty, new_layer.remaining));
+                            layer_queue.insert(make_pair(new_layer.penalty, new_layer.remaining));
                             best_layer[new_layer.remaining] = new_layer;
                         }
+                        if (exist_layer->second == new_layer.penalty && l > 0) {
+                            //  CHOOSE THE ONE WITH FEWEST CONNECTED COMPONENTS
+                            // calculate the number of connected components using unionfind
+                            int new_connected_components = calculate_connected_components(final_matrix[final_matrix.size()-1], new_layer.all);
+                            int exist_connected_components = calculate_connected_components(final_matrix[final_matrix.size()-1], best_layer[new_layer.remaining].all);
+                            int new_all_connected_components = all_calculate_connected_components(final_matrix, new_layer.all);
+                            int exist_all_connected_components = all_calculate_connected_components(final_matrix, best_layer[new_layer.remaining].all);
+                            if (new_connected_components < exist_connected_components || (new_connected_components == exist_connected_components && new_all_connected_components < exist_all_connected_components)) {
+                                // Choose our new layer
+                                layer_queue.erase(make_pair(exist_layer->second, exist_layer->first));
+                                layer_penalty[new_layer.remaining] = new_layer.penalty;
+                                layer_queue.insert(make_pair(new_layer.penalty, new_layer.remaining));
+                                best_layer[new_layer.remaining] = new_layer;
+                            }
+                        }
+
                     } else {
                         // add to everything
                         layer_penalty.insert(make_pair(new_layer.remaining, new_layer.penalty));
@@ -283,8 +419,23 @@ int main()
                             // CHANGE BEST ONE
                             layer_queue.erase(make_pair(exist_layer->second, exist_layer->first));
                             layer_penalty[new_layer.remaining] = new_layer.penalty;
-                            layer_queue.erase(make_pair(new_layer.penalty, new_layer.remaining));
+                            layer_queue.insert(make_pair(new_layer.penalty, new_layer.remaining));
                             best_layer[new_layer.remaining] = new_layer;
+                        }
+                        if (exist_layer->second == new_layer.penalty && l > 0) {
+                            //  CHOOSE THE ONE WITH FEWEST CONNECTED COMPONENTS
+                            // calculate the number of connected components using unionfind
+                            int new_connected_components = calculate_connected_components(final_matrix[final_matrix.size()-1], new_layer.all);
+                            int exist_connected_components = calculate_connected_components(final_matrix[final_matrix.size()-1], best_layer[new_layer.remaining].all);
+                            int new_all_connected_components = all_calculate_connected_components(final_matrix, new_layer.all);
+                            int exist_all_connected_components = all_calculate_connected_components(final_matrix, best_layer[new_layer.remaining].all);
+                            if (new_connected_components < exist_connected_components || (new_connected_components == exist_connected_components && new_all_connected_components < exist_all_connected_components)) {
+                                // Choose our new layer
+                                layer_queue.erase(make_pair(exist_layer->second, exist_layer->first));
+                                layer_penalty[new_layer.remaining] = new_layer.penalty;
+                                layer_queue.insert(make_pair(new_layer.penalty, new_layer.remaining));
+                                best_layer[new_layer.remaining] = new_layer;
+                            }
                         }
                     } else {
                         // add to everything
@@ -330,8 +481,23 @@ int main()
                             // CHANGE BEST ONE
                             layer_queue.erase(make_pair(exist_layer->second, exist_layer->first));
                             layer_penalty[new_layer.remaining] = new_layer.penalty;
-                            layer_queue.erase(make_pair(new_layer.penalty, new_layer.remaining));
+                            layer_queue.insert(make_pair(new_layer.penalty, new_layer.remaining));
                             best_layer[new_layer.remaining] = new_layer;
+                        }
+                        if (exist_layer->second == new_layer.penalty && l > 0) {
+                            //  CHOOSE THE ONE WITH FEWEST CONNECTED COMPONENTS
+                            // calculate the number of connected components using unionfind
+                            int new_connected_components = calculate_connected_components(final_matrix[final_matrix.size()-1], new_layer.all);
+                            int exist_connected_components = calculate_connected_components(final_matrix[final_matrix.size()-1], best_layer[new_layer.remaining].all);
+                            int new_all_connected_components = all_calculate_connected_components(final_matrix, new_layer.all);
+                            int exist_all_connected_components = all_calculate_connected_components(final_matrix, best_layer[new_layer.remaining].all);
+                            if (new_connected_components < exist_connected_components || (new_connected_components == exist_connected_components && new_all_connected_components < exist_all_connected_components)) {
+                                // Choose our new layer
+                                layer_queue.erase(make_pair(exist_layer->second, exist_layer->first));
+                                layer_penalty[new_layer.remaining] = new_layer.penalty;
+                                layer_queue.insert(make_pair(new_layer.penalty, new_layer.remaining));
+                                best_layer[new_layer.remaining] = new_layer;
+                            }
                         }
                     } else {
                         // add to everything
