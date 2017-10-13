@@ -69,7 +69,7 @@ def scan():
                 # the y coordinate is along eject_probe axis, increasing away from probe
 
                 bp.BrickPi.MotorEnable[setup.slide_probe_port] = 1
-                bp.set_target_encoder(setup.slide_probe_port, bp.BrickPi.Encoder[setup.slide_probe_port] - 75, 150)
+                bp.set_target_encoder(setup.slide_probe_port, bp.BrickPi.Encoder[setup.slide_probe_port] - 40, 150)
                 ymovement.calibrate()
                 bp.BrickPi.MotorEnable[setup.slide_probe_port] = 0
 
@@ -324,7 +324,7 @@ class XMovement:
         except:
             pass
         bp.BrickPiUpdateValues()
-        position1encoder = bp.BrickPi.Encoder[self.port] + 70
+        position1encoder = bp.BrickPi.Encoder[self.port] + 150
         bp.BrickPi.MotorEnable[self.port] = 0
 
         # now, calculate stud distance
@@ -385,7 +385,7 @@ class Rotation:
             # Add slightly more, due to some degrees of freedom that alter these values
             position = bp.BrickPi.Encoder[self.port] + i*14*720
             if i > 0:
-                position += 200
+                position += 240
             self.positions.append(position)
         self.current_position = 0
         # we set position to 1 and then back to 0, so that we reset any eventual wrongdoings
