@@ -11,3 +11,8 @@ slide_probe_port = bp.PORT_B
 eject_probe_port = bp.PORT_C
 lower_object_port = bp.PORT_D
 probe_sensor_port = bp.PORT_1
+
+
+
+# LEGOTILE ALGORITHM
+legotile_algorithm_executable = "legotile"

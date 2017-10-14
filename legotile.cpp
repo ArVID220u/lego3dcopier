@@ -610,30 +610,61 @@ int main()
     // The build instructions take the format TYPE X Y Z, e.g. 2x4 0 1 0
     // The X Y Z coordinates siginify the lower left corner of the brick
     // One instruction per row
+    vector<vector<vi>> final_matrix_copy = final_matrix;
     rep(l,0,h) rep(i,0,s) rep(j,0,s) {
         if (final_matrix[l][i][j] != 0) {
             int type = final_matrix[l][i][j] / 1000000;
             if (type == 1) {
                 // it's 4x2
-                cout << "4x2 " << i << " " << j << " " << l << endl;
+                cout << "4x2 " << i << " " << j << " " << l << " ";
                 // Turn all other into 0s
                 rep(ic,i,i+4) rep(jc,j,j+2) {
                     final_matrix[l][ic][jc] = 0;
                 }
+                // Finally, we add a list of 0s and 1s indicating which studs have support from beneath and which do not
+                rep(ic,i,i+4) rep(jc,j,j+2) {
+                    // if first layer, all studs have support
+                    int support = 1;
+                    if (l > 0) {
+                        if (final_matrix_copy[l-1][ic][jc] == 0) support = 0;
+                    }
+                    cout << support << " ";
+                }
+                cout << endl;
             } else if (type == 2) {
                 // 2x4
-                cout << "2x4 " << i << " " << j << " " << l << endl;
+                cout << "2x4 " << i << " " << j << " " << l << " ";
                 // Turn all other into 0s
                 rep(ic,i,i+2) rep(jc,j,j+4) {
                     final_matrix[l][ic][jc] = 0;
                 }
+                // Finally, we add a list of 0s and 1s indicating which studs have support from beneath and which do not
+                rep(ic,i,i+2) rep(jc,j,j+4) {
+                    // if first layer, all studs have support
+                    int support = 1;
+                    if (l > 0) {
+                        if (final_matrix_copy[l-1][ic][jc] == 0) support = 0;
+                    }
+                    cout << support << " ";
+                }
+                cout << endl;
             } else if (type == 3) {
                 // 2x4
-                cout << "2x2 " << i << " " << j << " " << l << endl;
+                cout << "2x2 " << i << " " << j << " " << l << " ";
                 // Turn all other into 0s
                 rep(ic,i,i+2) rep(jc,j,j+2) {
                     final_matrix[l][ic][jc] = 0;
                 }
+                // Finally, we add a list of 0s and 1s indicating which studs have support from beneath and which do not
+                rep(ic,i,i+2) rep(jc,j,j+2) {
+                    // if first layer, all studs have support
+                    int support = 1;
+                    if (l > 0) {
+                        if (final_matrix_copy[l-1][ic][jc] == 0) support = 0;
+                    }
+                    cout << support << " ";
+                }
+                cout << endl;
             } else {
                 cout << "ERROR" << endl;
                 return -1;
