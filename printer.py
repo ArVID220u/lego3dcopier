@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import nxt
 
 class Point:
     def __init__(x, y, z=0):
@@ -109,6 +110,8 @@ class Instruction:
 
 
 def current_point():
+    global xmovement, ymovement, zmovement
+    return Point(xmovement.current_position, ymovement.current_position, zmovement.current_position)
 
 def build(legotile_output):
     # convert the legotile_output to build instructions
@@ -121,6 +124,7 @@ def build(legotile_output):
 
 
     # create the xmovement, ymovement and zmovement
+    global xmovement, ymovement, zmovement
     xmovement = XMovement()
     ymovement = YMovement()
     zmovement = ZMovement()
@@ -133,13 +137,146 @@ def build(legotile_output):
         fasten()
         for reinforce_location in instruction.reinforce_locations:
             move(reinforce_location)
+            fasten()
 
 
 def move(point):
-    # if 
+    # if this point is above our current point, do zmovement first
+    if point.z > current_point().z:
+        zmovement.set_position(point.z)
+    xmovement.set_position(point.x)
+    ymovement.set_position(point.y)
+    # otherwise, do z movement last
+    if point.z <= current_point().z:
+        zmovement.set_position(point.z)
 
 
 def reset():
     xmovement.reset()
     ymovement.reset()
     zmovement.reset()
+
+
+
+
+
+class XMovement:
+
+    def __init__(self, port, brick):
+        self.brick = brick
+        self.port = port
+        self.motor = nxt.motor.Motor(brick, port)
+
+        # we assume regular position, so it starts at stud 11
+        self.current_position = 11
+
+        position11tacho = self.motor.get_tacho()
+
+        position0encoder = position11tacho.plus(620)
+
+        # now, calculate stud distance
+        stud_distance = (position11tacho.plus(-position0encoder.tacho_count)).tacho_count / 11
+
+        # calculate all positions using Encoder value
+        self.positions = []
+        for x in range(12):
+            thisposition = position0encoder.plus(stud_distance * x)
+            self.positions.append(thisposition)
+
+    def set_position(self, position):
+        self.motor.set_target_encoder(self.positions[position], 100)
+        self.current_position = position
+
+    def reset(self):
+        # move to regular position, that is, position 15
+        self.set_position(11)
+        # also move a bit more, since we want to be sure to reset
+        #self.motor.set_target_encoder(self.positions[position].plus(-100), 100)
+
+
+
+class YMovement:
+
+    def __init__(self, port, brick):
+        self.brick = brick
+        self.port = port
+        self.motor = nxt.motor.Motor(brick, port)
+
+        # we assume regular position, so it starts at stud 19
+        self.current_position = 19
+
+        position19tacho = self.motor.get_tacho()
+
+        position0tacho = position19tacho.plus(-1070)
+
+        # now, calculate stud distance
+        stud_distance = (position19tacho.plus(-position0tacho.tacho_count)).tacho_count / 19
+
+        # calculate all positions using Encoder value
+        self.positions = []
+        for x in range(20):
+            thisposition = position0tacho.plus(stud_distance * x)
+            self.positions.append(thisposition)
+
+    def set_position(self, position):
+        self.motor.set_target_encoder(self.positions[position], 100)
+        self.current_position = position
+
+    def reset(self):
+        # move to regular position, that is, position 15
+        self.set_position(19)
+        # also move a bit more, since we want to be sure to reset
+        #self.motor.set_target_encoder(self.positions[position].plus(-100), 100)
+
+
+class ZMovement:
+
+    def __init__(self, port, brick):
+        self.brick = brick
+        self.port = port
+        self.motor = nxt.motor.Motor(brick, port)
+
+        # we assume regular position, so it starts at stud 3
+        self.current_position = 3
+
+        position3tacho = self.motor.get_tacho()
+
+        # MEASURE CORRECT VALUE
+        self.position0tacho = position3tacho.plus(-1000)
+
+        # now, calculate stud distance
+        self.stud_distance = (position3tacho.plus(-position0tacho.tacho_count)).tacho_count / 3
+
+
+    def set_position(self, position):
+        # if position is lower, then we can just move down
+        if position < self.current_position:
+            self.motor.set_target_encoder(self.position0tacho.plus(self.stud_distance * position), 120)
+        else:
+            # otherwise, we have to move up a bit too much, and then move down again
+            self.motor.set_target_encoder(self.position0tacho.plus(self.stud_distance * (position+1)), 120)
+            self.motor.set_target_encoder(self.position0tacho.plus(self.stud_distance * position), 120)
+        self.current_position = position
+
+    def reset(self):
+        # move to regular position, that is, position 3
+        self.set_position(3)
+        # also move a bit more, since we want to be sure to reset
+        #self.motor.set_target_encoder(self.positions[position].plus(-100), 100)
+
+
+def fasten():
+    # lower with 30 pts, then move in x and y directions, then lower with 20 pts, then move...
+    # do this 5 times
+    zmovement.motor.set_target_encoder(zmovement.motor.get_tacho().plus(-150), 120, recurse=False)
+    for i in range(3,10):
+        zmovement.motor.set_target_encoder(zmovement.motor.get_tacho().plus(-30), 120, recurse=False)
+        xmovement.motor.turn(100, 20*i/5)
+        ymovement.motor.turn(100, 20*i/5)
+        xmovement.motor.turn(-100, 40*i/5)
+        ymovement.motor.turn(-100, 40*i/5)
+        xmovement.set_position(xmovement.current_position)
+        ymovement.set_position(ymovement.current_position)
+    # now push
+    zmovement.motor.set_target_encoder(zmovement.motor.get_tacho().plus(-500), 120, recurse=False)
+    zmovement.set_position(zmovement.current_position)
