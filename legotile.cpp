@@ -230,7 +230,7 @@ int main()
     }
 
     // Print our original matrix
-    cout << "ORIGINAL MATRIX:" << endl;
+    /*cout << "ORIGINAL MATRIX:" << endl;
     rep(l,0,h) {
         rep(i,0,s) {
             rep(j,0,s) {
@@ -240,7 +240,7 @@ int main()
         }
         cout << endl;
     }
-    cout << "END OF ORIGINAL MATRIX" << endl;
+    cout << "END OF ORIGINAL MATRIX" << endl;*/
 
 
     // The finalmatrix, yet to be filled
@@ -272,14 +272,14 @@ int main()
         initial_layer.lastcorner = {0, 0};
         initial_layer.num_bricks = 0;
 
-        cout << "initial layer:" << endl;
+        /*cout << "initial layer:" << endl;
         rep(i,0,s) {
             rep(j,0,s) {
                 cout << initial_layer.all[i][j] << " ";
             }
             cout << endl;
         }
-        cout << "end of initial layer" << endl;
+        cout << "end of initial layer" << endl;*/
 
 
         // add the initial_layer to our queue
@@ -312,7 +312,7 @@ int main()
             if (lastcorner.i == s) {
                 // YAY WE FOUND IT
                 // THIS IS OUR LAYER
-                cout << "WE CHOSE A LAYER" << endl;
+                //cout << "WE CHOSE A LAYER" << endl;
                 chosen_layer = current_layer;
                 break;
             }
@@ -346,7 +346,8 @@ int main()
                     // modify 1s into 0s and -num_bricks
                     rep(i, lastcorner.i, lastcorner.i+4) rep(j, lastcorner.j, lastcorner.j+2) {
                         new_layer.remaining[i][j] = 0;
-                        new_layer.all[i][j] = -new_layer.num_bricks;
+                        int unique_id = 1000000  + new_layer.num_bricks;
+                        new_layer.all[i][j] = -unique_id;
                     }
                     // we're finished with this layer now
                     // check if we're good or not
@@ -408,7 +409,9 @@ int main()
                     // modify 1s into 0s and -num_bricks
                     rep(i, lastcorner.i, lastcorner.i+2) rep(j, lastcorner.j, lastcorner.j+4) {
                         new_layer.remaining[i][j] = 0;
-                        new_layer.all[i][j] = -new_layer.num_bricks;
+                        // Create a unique ID. The ID should be easily distinguishable from 4x2 and 2x4
+                        int unique_id = 2000000  + new_layer.num_bricks;
+                        new_layer.all[i][j] = -unique_id;
                     }
                     // we're finished with this layer now
                     // check if we're good or not
@@ -447,7 +450,7 @@ int main()
                 }
             }
             if (lastcorner.i <= s-2 && lastcorner.j <= s-2) {
-                // try 4x2
+                // try 2x2
                 bool works = true;
                 rep(i, lastcorner.i, lastcorner.i+2) rep(j, lastcorner.j, lastcorner.j+2) {
                     if (current_layer.remaining[i][j] != 1) works = false;
@@ -470,7 +473,9 @@ int main()
                     // modify 1s into 0s and -num_bricks
                     rep(i, lastcorner.i, lastcorner.i+2) rep(j, lastcorner.j, lastcorner.j+2) {
                         new_layer.remaining[i][j] = 0;
-                        new_layer.all[i][j] = -new_layer.num_bricks;
+                        // Create a unique ID. The ID should be easily distinguishable from 4x2 and 2x4
+                        int unique_id = 3000000  + new_layer.num_bricks;
+                        new_layer.all[i][j] = -unique_id;
                     }
                     // we're finished with this layer now
                     // check if we're good or not
@@ -510,7 +515,7 @@ int main()
             }
         }
 
-        cout << "AFTER CHOSEN LAYER. IF NOT, THEN BAD" << endl;
+        //cout << "AFTER CHOSEN LAYER. IF NOT, THEN BAD" << endl;
 
         // convert our chosen layer into positive integers again, now where there should be no 1s
         rep(i,0,s) rep(j,0,s) {
@@ -520,14 +525,14 @@ int main()
 
 
 
-        cout << "our chosen layer:" << endl;
+        /*cout << "our chosen layer:" << endl;
         rep(i,0,s) {
             rep(j,0,s) {
                 cout << chosen_layer.all[i][j] << " ";
             }
             cout << endl;
         }
-        cout << "end of our chosen layer" << endl;
+        cout << "end of our chosen layer" << endl;*/
 
 
         // now, we have chosen a layer
@@ -586,7 +591,7 @@ int main()
     // ALL LAYERS DONE
     // WOHOO
 
-    cout << endl << endl;
+    /*cout << endl << endl;
     cout << "FINAL RESULTS" << endl << endl;
 
     // Print them
@@ -598,8 +603,43 @@ int main()
             cout << endl;
         }
         cout << endl;
-    }
+    }*/
 
+
+    // Now create build instructions based on the layers
+    // The build instructions take the format TYPE X Y Z, e.g. 2x4 0 1 0
+    // The X Y Z coordinates siginify the lower left corner of the brick
+    // One instruction per row
+    rep(l,0,h) rep(i,0,s) rep(j,0,s) {
+        if (final_matrix[l][i][j] != 0) {
+            int type = final_matrix[l][i][j] / 1000000;
+            if (type == 1) {
+                // it's 4x2
+                cout << "4x2 " << i << " " << j << " " << l << endl;
+                // Turn all other into 0s
+                rep(ic,i,i+4) rep(jc,j,j+2) {
+                    final_matrix[l][ic][jc] = 0;
+                }
+            } else if (type == 2) {
+                // 2x4
+                cout << "2x4 " << i << " " << j << " " << l << endl;
+                // Turn all other into 0s
+                rep(ic,i,i+2) rep(jc,j,j+4) {
+                    final_matrix[l][ic][jc] = 0;
+                }
+            } else if (type == 3) {
+                // 2x4
+                cout << "2x2 " << i << " " << j << " " << l << endl;
+                // Turn all other into 0s
+                rep(ic,i,i+2) rep(jc,j,j+2) {
+                    final_matrix[l][ic][jc] = 0;
+                }
+            } else {
+                cout << "ERROR" << endl;
+                return -1;
+            }
+        }
+    }
 
 
 
