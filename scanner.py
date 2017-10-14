@@ -148,12 +148,14 @@ def scan():
                 
                 # also rotate the layer grid 90 degrees in the same direction as the physical rotation (hmm, is that important? i suspect not)
                 layer = rotate_layer(layer)
-
+                
+                """
                 # printe the (rotated) layer
                 for row in layer:
                     for s in row:
                         print(str(s) + " ", end="")
                     print(" ")
+                """
 
             # fix corners
             # if the corners have a zero as neighbor, then it is a zero; otherwise, it is a one
@@ -184,12 +186,18 @@ def scan():
             if is_empty:
                 stop_scanning = True
 
+        # rotate the layer once so that it is prepared for printing
+        layer = rotate_layer(layer)
 
         # append the layer to the matrix3d
         matrix3d.append(layer)
 
         # now lower the object
         height.lower()
+
+
+    # return the presence matrix
+    return matrix3d
 
 
 
