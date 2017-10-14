@@ -54,17 +54,9 @@ def copy():
     with open(scanneroutput, "rb") as scanneroutputfile:
         legotile_output = subprocess.check_output([os.path.abspath(setup.legotile_algorithm_executable)], stdin=scanneroutputfile).decode("utf-8")
 
-    # convert the legotile_output to build instructions
-    # the build instructions will be a list of build_instructions from the printer
-    build_instructions = []
-    for line in legotile_output.strip().split("\n"):
-        rawinstruction = line.strip().split(" ")
-        from printer import Instruction
-        instruction = Instruction(brick=rawinstruction[0], x=int(rawinstruction[1]), y=int(rawinstruction[2]), z=int(rawinstruction[3]), support=[int(x) for x in rawinstruction[4:]])
-        build_instructions.append(instruction)
 
     # now build these build_instructions
-    printer.build(build_instructions)
+    printer.build(legotile_output)
 
     
 
