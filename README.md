@@ -32,5 +32,4 @@ The penalty for a layer takes into account two things. First, the penalty increa
 
 Finally, the Legotile Algorithm also checks to make sure that the structure is connected, i.e. that all bricks are connected to each other in some way. This is done by using the union-find data structure – the stud positions of each individual brick of each layer are combined ("unioned"), and then the number of disjoint sets are counted (and that number should be as low as possible).
 
-The Legotile Algorithm returns a 3D matrix, where every cell indicate the index of the lego brick that covers it. 0 still signifies that a position is free.
-
+The Legotile Alorithm returns build instructions formatted "TYPE X Y Z", where TYPE is one of "2x4", "4x2" and "2x2". X, Y and Z signify the position of the lower left corner of the brick.
