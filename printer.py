@@ -263,17 +263,13 @@ class ZMovement:
     def set_position(self, position):
         if position == self.current_position:
             return
-        # if position is lower, then we can just move down
-        if position < self.current_position:
-            self.motor.set_target_encoder(self.position0tacho.plus(self.stud_distance * position), 120, brake=False)
-        else:
-            # otherwise, we have to move up a bit too much, and then move down again
-            self.motor.set_target_encoder(self.position0tacho.plus(self.stud_distance * (position+1)), 120, brake=False)
-            self.motor.set_target_encoder(self.position0tacho.plus(self.stud_distance * position), 120, brake=False)
+        self.motor.set_target_encoder(self.position0tacho.plus(self.stud_distance * position), 120, brake=False)
         self.current_position = position
 
     def reset(self):
         # move to regular position, that is, position 3
+        # first move up to position 4, though
+        self.set_position(4)
         self.set_position(3)
         # also move a bit more, since we want to be sure to reset
         #self.motor.set_target_encoder(self.positions[position].plus(-100), 100)
