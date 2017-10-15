@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
 import nxt
+import setup
+import time
 
 class Point:
-    def __init__(x, y, z=0):
+    def __init__(self, x, y, z=0):
         self.x = x
         self.y = y
         self.z = z
@@ -18,22 +20,27 @@ class NoSupportException(Exception):
 
 
 # the locations for fetching bricks
-fetch_2x2 = Point(5,16,1+2/3)
-fetch_4x2 = Point(0,16,1+2/3)
-fetch_2x4_1 = Point(8,16,1+2/3)
-fetch_2x4_2 = Point(10,16,1+2/3)
+fetch_2x2 = Point(5,16,2/3)
+fetch_4x2 = Point(0,16,2/3)
+fetch_2x4_1 = Point(8,16,2/3)
+fetch_2x4_2 = Point(10,16,2/3)
 fetch_2x4_1_active = True
 
 def fetch_location(brick):
     if brick == "2x2":
+        global fetch_2x2
         return fetch_2x2
     if brick == "4x2":
+        global fetch_4x2
         return fetch_4x2
     if brick == "2x4":
+        global fetch_2x4_1_active
         if fetch_2x4_1_active:
+            global fetch_2x4_1
             fetch_2x4_1_active = False
             return fetch_2x4_1
         else:
+            global fetch_2x4_2
             fetch_2x4_1_active = True
             return fetch_2x4_2
 
@@ -125,36 +132,41 @@ def build(legotile_output):
 
     # create the xmovement, ymovement and zmovement
     global xmovement, ymovement, zmovement
-    xmovement = XMovement()
-    ymovement = YMovement()
-    zmovement = ZMovement()
+    brick = nxt.locator.find_one_brick(debug=setup.debug)
+    xmovement = XMovement(brick, setup.xmotor)
+    ymovement = YMovement(brick, setup.ymotor)
+    zmovement = ZMovement(brick, setup.zmotor)
 
     # now just execute the build instructions, by moving to the fetch location, then the target location, then the reinforce locations
     for instruction in build_instructions:
         move(instruction.fetch_location)
         fasten()
-        move(instruction.target_location)
-        fasten()
+        move(instruction.target_location, holdingbrick=True)
+        fasten(brick=True)
         for reinforce_location in instruction.reinforce_locations:
             move(reinforce_location)
-            fasten()
+            fasten(brick=True)
 
 
-def move(point):
-    # if this point is above our current point, do zmovement first
-    if point.z > current_point().z:
-        zmovement.set_position(point.z)
+def move(point, holdingbrick=False):
+    addheight = 0
+    if holdingbrick:
+        addheight = 1
+    zmovement.set_position(max(max(point.z, current_point().z), 2) + addheight)
     xmovement.set_position(point.x)
     ymovement.set_position(point.y)
-    # otherwise, do z movement last
-    if point.z <= current_point().z:
-        zmovement.set_position(point.z)
+    time.sleep(1)
+    zmovement.set_position(point.z)
 
 
 def reset():
-    xmovement.reset()
-    ymovement.reset()
-    zmovement.reset()
+    global xmovement, ymovement, zmovement
+    if "zmovement" in globals():
+        zmovement.reset()
+    if "ymovement" in globals():
+        ymovement.reset()
+    if "xmovement" in globals():
+        xmovement.reset()
 
 
 
@@ -162,7 +174,7 @@ def reset():
 
 class XMovement:
 
-    def __init__(self, port, brick):
+    def __init__(self, brick, port):
         self.brick = brick
         self.port = port
         self.motor = nxt.motor.Motor(brick, port)
@@ -184,7 +196,7 @@ class XMovement:
             self.positions.append(thisposition)
 
     def set_position(self, position):
-        self.motor.set_target_encoder(self.positions[position], 100)
+        self.motor.set_target_encoder(self.positions[position], 60)
         self.current_position = position
 
     def reset(self):
@@ -197,20 +209,20 @@ class XMovement:
 
 class YMovement:
 
-    def __init__(self, port, brick):
+    def __init__(self, brick, port):
         self.brick = brick
         self.port = port
         self.motor = nxt.motor.Motor(brick, port)
 
-        # we assume regular position, so it starts at stud 19
-        self.current_position = 19
+        # we assume regular position, so it starts at stud 18
+        self.current_position = 18
 
         position19tacho = self.motor.get_tacho()
 
         position0tacho = position19tacho.plus(-1070)
 
         # now, calculate stud distance
-        stud_distance = (position19tacho.plus(-position0tacho.tacho_count)).tacho_count / 19
+        stud_distance = (position19tacho.plus(-position0tacho.tacho_count)).tacho_count / 18
 
         # calculate all positions using Encoder value
         self.positions = []
@@ -219,19 +231,19 @@ class YMovement:
             self.positions.append(thisposition)
 
     def set_position(self, position):
-        self.motor.set_target_encoder(self.positions[position], 100)
+        self.motor.set_target_encoder(self.positions[position], 60)
         self.current_position = position
 
     def reset(self):
         # move to regular position, that is, position 15
-        self.set_position(19)
+        self.set_position(18)
         # also move a bit more, since we want to be sure to reset
         #self.motor.set_target_encoder(self.positions[position].plus(-100), 100)
 
 
 class ZMovement:
 
-    def __init__(self, port, brick):
+    def __init__(self, brick, port):
         self.brick = brick
         self.port = port
         self.motor = nxt.motor.Motor(brick, port)
@@ -242,20 +254,22 @@ class ZMovement:
         position3tacho = self.motor.get_tacho()
 
         # MEASURE CORRECT VALUE
-        self.position0tacho = position3tacho.plus(-1000)
+        self.position0tacho = position3tacho.plus(-3180)
 
         # now, calculate stud distance
-        self.stud_distance = (position3tacho.plus(-position0tacho.tacho_count)).tacho_count / 3
+        self.stud_distance = (position3tacho.plus(-self.position0tacho.tacho_count)).tacho_count / 3
 
 
     def set_position(self, position):
+        if position == self.current_position:
+            return
         # if position is lower, then we can just move down
         if position < self.current_position:
-            self.motor.set_target_encoder(self.position0tacho.plus(self.stud_distance * position), 120)
+            self.motor.set_target_encoder(self.position0tacho.plus(self.stud_distance * position), 120, brake=False)
         else:
             # otherwise, we have to move up a bit too much, and then move down again
-            self.motor.set_target_encoder(self.position0tacho.plus(self.stud_distance * (position+1)), 120)
-            self.motor.set_target_encoder(self.position0tacho.plus(self.stud_distance * position), 120)
+            self.motor.set_target_encoder(self.position0tacho.plus(self.stud_distance * (position+1)), 120, brake=False)
+            self.motor.set_target_encoder(self.position0tacho.plus(self.stud_distance * position), 120, brake=False)
         self.current_position = position
 
     def reset(self):
@@ -265,18 +279,28 @@ class ZMovement:
         #self.motor.set_target_encoder(self.positions[position].plus(-100), 100)
 
 
-def fasten():
+def fasten(brick=False):
     # lower with 30 pts, then move in x and y directions, then lower with 20 pts, then move...
     # do this 5 times
-    zmovement.motor.set_target_encoder(zmovement.motor.get_tacho().plus(-150), 120, recurse=False)
-    for i in range(3,10):
-        zmovement.motor.set_target_encoder(zmovement.motor.get_tacho().plus(-30), 120, recurse=False)
-        xmovement.motor.turn(100, 20*i/5)
-        ymovement.motor.turn(100, 20*i/5)
-        xmovement.motor.turn(-100, 40*i/5)
-        ymovement.motor.turn(-100, 40*i/5)
+    import time
+    time.sleep(3)
+    zmovement.motor.set_target_encoder(zmovement.motor.get_tacho().plus(-500), 120, brake=False)
+    for i in range(3,6):
+        #zmovement.motor.set_target_encoder(zmovement.motor.get_tacho().plus(-100), 120, brake=False)
+        zmovement.motor.turn(-120, 100, brake=False)
+        xmovement.motor.turn(60, 20)
+        time.sleep(0.5)
+        ymovement.motor.turn(60, 20)
+        time.sleep(0.5)
+        xmovement.motor.turn(-60, 50)
+        time.sleep(0.5)
+        ymovement.motor.turn(-60, 40)
+        time.sleep(0.5)
         xmovement.set_position(xmovement.current_position)
         ymovement.set_position(ymovement.current_position)
+        time.sleep(1)
     # now push
-    zmovement.motor.set_target_encoder(zmovement.motor.get_tacho().plus(-500), 120, recurse=False)
+    #zmovement.motor.set_target_encoder(zmovement.motor.get_tacho().plus(-500), 120, brake=False)
+    if brick:
+        zmovement.motor.turn(-120, 1500)
     zmovement.set_position(zmovement.current_position)
