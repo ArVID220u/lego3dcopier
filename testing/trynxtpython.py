@@ -24,11 +24,12 @@ motor.debug_info()
 tacho = int(input())
 
 state.tacho_limit = tacho
-state.power = 127
+state.power = 60
 motor._set_state(state)
 
 motor.debug_info()
 print("END")
 import time
-time.sleep(10)
+time.sleep(3)
 motor.brake()
+motor.debug_info()

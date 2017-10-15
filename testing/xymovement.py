@@ -28,7 +28,8 @@ try:
         x.set_position(xpos)
         y.set_position(ypos)
 finally:
-    x.reset()
-    y.reset()
+    #x.reset()
+    #y.reset()
+    pass
 #motor.debug_info()
 print("END")

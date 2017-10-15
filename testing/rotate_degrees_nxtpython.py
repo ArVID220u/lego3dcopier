@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import nxt
+import time
 
 brick = nxt.locator.find_one_brick(debug=True)
 
@@ -22,7 +23,21 @@ degrees = int(input())
 
 target = motor.get_tacho().get_target(degrees)
 
-motor.set_target_encoder(target, 100)
+motor.set_target_encoder(target, 100, brake=(port != "c")) 
+"""motor.turn(120,degrees)
+time.sleep(3)
+motor.turn(100,degrees)
+time.sleep(3)
+motor.turn(80,degrees)
+time.sleep(3)
+motor.turn(60,degrees)
+time.sleep(3)
+motor.turn(40,degrees)
+time.sleep(3)
+motor.turn(20,degrees)
+time.sleep(3)"""
+#motor.turn(60,degrees)
+#motor.set_target_encoder(target, 60)
 
 motor.debug_info()
 print("END")
