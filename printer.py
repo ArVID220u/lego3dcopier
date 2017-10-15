@@ -70,6 +70,16 @@ class Instruction:
                         return Point(i, j)
                     index -= 1
 
+    def point_to_supportindex(self, point, width, height):
+        index = 0
+        for i in range(width):
+            for j in range(height):
+                if point.x == i and point.y == j:
+                    return index
+                index += 1
+        return -1
+
+
 
     def __init__(self, brick, x, y, z, support):
         self.lower_left = Point(x, y, z)
@@ -110,10 +120,50 @@ class Instruction:
 
 
         # find the reinforce locations
+        # only find the relevant reinforce locations
+        # which locations are relevant? 
+        # we divide the brick into halves, both in the x and y directions
+        # then we claim: we need to reinforce at least once in each half
+        # that is, the best way to achive this would be to simply mirror the target_location
+        # if that cannot be done, we try other things
+        width = 2
+        height = 2
+        if self.brick == "4x2":
+            width = 4
+        elif self.brick == "2x4":
+            height = 4
         self.reinforce_locations = []
-        for i, s in enumerate(support):
-            if s == 1 and i != fetchstud:
-                self.reinforce_locations.append(self.lower_left + self.supportindex_to_point(i))
+        mirror_point = Point((-1-fetchstudpoint.x + width)%width, (-1-fetchstudpoint.y + height)%height)
+        mirror_index = self.point_to_supportindex(mirror_point, width, height)
+        if support[mirror_index] == 1:
+            self.reinforce_locations.append(self.lower_left + mirror_point)
+        else:
+            taken_x = False
+            taken_y = False
+            for i, s in enumerate(support):
+                if s == 1 and i != fetchstud:
+                    thispoint = self.supportindex_to_point(i)
+                    if not taken_x:
+                        if width == 2:
+                            if thispoint.x != fetchstudpoint.x:
+                                taken_x = True
+                                self.reinforce_locations.append(self.lower_left + thispoint)
+                        else:
+                            if thispoint.x // 2 != fetchstudpoint.x // 2:
+                                taken_x = True
+                                self.reinforce_locations.append(self.lower_left + thispoint)
+                    if not taken_y:
+                        if height == 2:
+                            if thispoint.y != fetchstudpoint.y:
+                                taken_y = True 
+                                self.reinforce_locations.append(self.lower_left + thispoint)
+                        else:
+                            if thispoint.y // 2 != fetchstudpoint.y // 2:
+                                taken_y = True
+                                self.reinforce_locations.append(self.lower_left + thispoint)
+
+
+
 
 
 def current_point():
