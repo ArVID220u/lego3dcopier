@@ -3,7 +3,9 @@
 import scanner
 import printer
 import setup
+
 import subprocess
+import os
 
 
 # The main function, which should initiate the check for a button press, and then start the copying process
@@ -29,25 +31,34 @@ def reset():
 def copy():
     # WE ASSUME REGULAR POSITION
     # start by scanning, which generates a presence matrix
-    presence_matrix = scanner.scan()
 
     # now, we want to run the legotile algorithm
     # the legotile algorithm is a cpp program and thus needs to be communicated with using stdin/stdout
 
     # create a temporary in file which can be sent to the algorithm
     scanneroutput = "scanneroutput.in"
-    with open(scanneroutput, "w") as scanneroutputfile:
-        # write the presence matrix to it
-        # first, we write the dimensions
-        scanneroutputfile.write(str(presence_matrix[0].size()) + " " + str(presence_matrix.size()) + "\n")
-        # then, we write out the complete matrix
-        for layer in presence_matrix:
-            for row in layer:
-                for item in row:
-                    scanneroutputfile.write(str(item) + " ")
+
+    if setup.debug:
+        otherinput = input()
+        if otherinput.endswith(".in"):
+            scanneroutput = otherinput
+    if scanneroutput == "scanneroutput.in":
+
+        presence_matrix = scanner.scan()
+
+        with open(scanneroutput, "w") as scanneroutputfile:
+            # write the presence matrix to it
+            # first, we write the dimensions
+            scanneroutputfile.write(str(presence_matrix[0].size()) + " " + str(presence_matrix.size()) + "\n")
+            # then, we write out the complete matrix
+            for layer in presence_matrix:
+                for row in layer:
+                    for item in row:
+                        scanneroutputfile.write(str(item) + " ")
+                    scanneroutputfile.write("\n")
                 scanneroutputfile.write("\n")
-            scanneroutputfile.write("\n")
-        # finished!
+            # finished!
+
 
     # now send this data to the legotile algorithm and run it
     legotile_output = ""
