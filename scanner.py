@@ -20,6 +20,7 @@ def scan():
     bp.BrickPiSetup()
 
 
+    global xmovement, ymovement, height, rotation
 
     # the matrix to return
     # a position is accessed by matrix3d[z][x][y] where z is height
@@ -414,6 +415,9 @@ class Rotation:
     def next_position(self):
         self.set_position((self.current_position + 1)%4)
 
+    def reset(self):
+        self.set_position(0)
+
 
 # Height class, which lowers the object stud by stud
 class Height:
@@ -454,6 +458,18 @@ def abort(xmovement, rotation, height):
         height.lower()
     height.reset()
     sys.exit()
+
+def reset():
+    global xmovement, ymovement, height, rotation
+    if "ymovement" in globals():
+        ymovement.reset()
+    if "xmovement" in globals():
+        xmovement.reset()
+    if "rotation" in globals():
+        rotation.reset()
+    if "height" in globals():
+        height.reset()
+
 
 
 def check_if_abort(xmovement, rotation, height):
