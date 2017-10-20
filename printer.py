@@ -179,10 +179,17 @@ def build(legotile_output):
         instruction = Instruction(brick=rawinstruction[0], x=int(rawinstruction[1]), y=int(rawinstruction[2]), z=int(rawinstruction[3]), support=[int(x) for x in rawinstruction[4:]])
         build_instructions.append(instruction)
 
+    # find the nxt brick
+    brick = nxt.locator.find_one_brick(debug=setup.debug)
+
+    # create the motorcontrol
+    global motorcontrol
+    motorcontrol = nxt.motcont.MotCont(brick)
+    # start the motorcontrol progrm on the nxt
+    motorcontrol.start()
 
     # create the xmovement, ymovement and zmovement
     global xmovement, ymovement, zmovement
-    brick = nxt.locator.find_one_brick(debug=setup.debug)
     xmovement = XMovement(brick, setup.xmotor)
     ymovement = YMovement(brick, setup.ymotor)
     zmovement = ZMovement(brick, setup.zmotor)
@@ -190,12 +197,15 @@ def build(legotile_output):
     # now just execute the build instructions, by moving to the fetch location, then the target location, then the reinforce locations
     for instruction in build_instructions:
         move(instruction.fetch_location)
-        fasten()
+        #fasten()
+        time.sleep(5)
         move(instruction.target_location, holdingbrick=True)
-        fasten(brick=True)
+        #fasten(brick=True)
+        time.sleep(5)
         for reinforce_location in instruction.reinforce_locations:
             move(reinforce_location)
-            fasten(brick=True)
+            #fasten(brick=True)
+            time.sleep(5)
 
 
 def move(point, holdingbrick=False):
@@ -217,6 +227,9 @@ def reset():
         ymovement.reset()
     if "xmovement" in globals():
         xmovement.reset()
+    global motorcontrol
+    if "motorcontrol" in globals():
+        motorcontrol.stop()
 
 
 
@@ -232,21 +245,30 @@ class XMovement:
         # we assume regular position, so it starts at stud 11
         self.current_position = 11
 
-        position11tacho = self.motor.get_tacho()
+        position11tacho = self.motor.get_tacho().block_tacho_count
 
-        position0encoder = position11tacho.plus(620)
+        # big gears: 620. Small gears: 1240 Then times three
+        position0encoder = position11tacho + 620
 
         # now, calculate stud distance
-        stud_distance = (position11tacho.plus(-position0encoder.tacho_count)).tacho_count / 11
+        #stud_distance = (position11tacho - position0encoder) / 11
+        # mathematically calculated
+        stud_distance = 56.25
+        position0encoder = position11tacho + 11*stud_distance
+        stud_distance = -stud_distance
 
         # calculate all positions using Encoder value
         self.positions = []
         for x in range(12):
-            thisposition = position0encoder.plus(stud_distance * x)
+            thisposition = position0encoder + stud_distance * x
             self.positions.append(thisposition)
 
     def set_position(self, position):
-        self.motor.set_target_encoder(self.positions[position], 60)
+        #self.motor.set_target_encoder(self.positions[position], 60)
+        global motorcontrol
+        # use the move_to command
+        motorcontrol.move_to(self.port, 60, self.positions[position])
+        time.sleep(self.approx_duration(position))
         self.current_position = position
 
     def reset(self):
@@ -254,6 +276,10 @@ class XMovement:
         self.set_position(11)
         # also move a bit more, since we want to be sure to reset
         #self.motor.set_target_encoder(self.positions[position].plus(-100), 100)
+
+    def approx_duration(self, positionto):
+        # speed approximately 4 studs per second
+        return abs(self.current_position - positionto)/4*10
 
 
 
@@ -267,21 +293,29 @@ class YMovement:
         # we assume regular position, so it starts at stud 18
         self.current_position = 18
 
-        position19tacho = self.motor.get_tacho()
+        position19tacho = self.motor.get_tacho().block_tacho_count
 
-        position0tacho = position19tacho.plus(-1070)
+        # with small gears: multiply by 2
+        position0tacho = position19tacho - 1070*2
 
         # now, calculate stud distance
-        stud_distance = (position19tacho.plus(-position0tacho.tacho_count)).tacho_count / 18
+        #stud_distance = (position19tacho - position0tacho) / 18
+        # mathematically calculated
+        stud_distance = 112.5
+        position0tacho = position19tacho - 19*stud_distance
 
         # calculate all positions using Encoder value
         self.positions = []
         for x in range(20):
-            thisposition = position0tacho.plus(stud_distance * x)
+            thisposition = position0tacho + stud_distance * x
             self.positions.append(thisposition)
 
     def set_position(self, position):
-        self.motor.set_target_encoder(self.positions[position], 60)
+        #self.motor.set_target_encoder(self.positions[position], 60)
+        global motorcontrol
+        # use the move_to command
+        motorcontrol.move_to(self.port, 60, self.positions[position])
+        time.sleep(self.approx_duration(position))
         self.current_position = position
 
     def reset(self):
@@ -289,6 +323,10 @@ class YMovement:
         self.set_position(18)
         # also move a bit more, since we want to be sure to reset
         #self.motor.set_target_encoder(self.positions[position].plus(-100), 100)
+
+    def approx_duration(self, positionto):
+        # speed approximately 4 studs per second
+        return abs(self.current_position - positionto)/4*10
 
 
 class ZMovement:
@@ -301,19 +339,22 @@ class ZMovement:
         # we assume regular position, so it starts at stud 3
         self.current_position = 3
 
-        position3tacho = self.motor.get_tacho()
+        position3tacho = self.motor.get_tacho().block_tacho_count
 
         # MEASURE CORRECT VALUE
-        self.position0tacho = position3tacho.plus(-3180)
+        self.position0tacho = position3tacho - 3180
 
         # now, calculate stud distance
-        self.stud_distance = (position3tacho.plus(-self.position0tacho.tacho_count)).tacho_count / 3
+        self.stud_distance = (position3tacho - self.position0tacho) / 3
 
 
     def set_position(self, position):
         if position == self.current_position:
             return
-        self.motor.set_target_encoder(self.position0tacho.plus(self.stud_distance * position), 120, brake=False)
+        #self.motor.set_target_encoder(self.position0tacho.plus(self.stud_distance * position), 120, brake=False)
+        global motorcontrol
+        motorcontrol.move_to(self.port, self.position0tacho + self.stud_distance * position, 100)
+        time.sleep(self.approx_duration(position))
         self.current_position = position
 
     def reset(self):
@@ -323,6 +364,10 @@ class ZMovement:
         self.set_position(3)
         # also move a bit more, since we want to be sure to reset
         #self.motor.set_target_encoder(self.positions[position].plus(-100), 100)
+
+    def approx_duration(self, positionto):
+        # speed approximately 1 stud per second
+        return abs(self.current_position - positionto)*10
 
 
 def fasten(brick=False):
@@ -349,4 +394,7 @@ def fasten(brick=False):
     #zmovement.motor.set_target_encoder(zmovement.motor.get_tacho().plus(-500), 120, brake=False)
     if brick:
         zmovement.motor.turn(-120, 1500)
+    else:
+        zmovement.motor.turn(-120, 200)
+    time.sleep(1)
     zmovement.set_position(zmovement.current_position)
