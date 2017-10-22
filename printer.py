@@ -198,14 +198,17 @@ def build(legotile_output):
     for instruction in build_instructions:
         move(instruction.fetch_location)
         #fasten()
-        time.sleep(5)
+        pick()
+        time.sleep(1)
         move(instruction.target_location, holdingbrick=True)
         #fasten(brick=True)
-        time.sleep(5)
+        pick(brick=True)
+        time.sleep(1)
         for reinforce_location in instruction.reinforce_locations:
             move(reinforce_location)
             #fasten(brick=True)
-            time.sleep(5)
+            pick()
+            time.sleep(1)
 
 
 def move(point, holdingbrick=False):
@@ -253,7 +256,7 @@ class XMovement:
         # now, calculate stud distance
         #stud_distance = (position11tacho - position0encoder) / 11
         # mathematically calculated
-        stud_distance = 56.25
+        stud_distance = 112.5
         position0encoder = position11tacho + 11*stud_distance
         stud_distance = -stud_distance
 
@@ -267,7 +270,7 @@ class XMovement:
         #self.motor.set_target_encoder(self.positions[position], 60)
         global motorcontrol
         # use the move_to command
-        motorcontrol.move_to(self.port, 60, self.positions[position])
+        motorcontrol.move_to(self.port, 80, self.positions[position])
         time.sleep(self.approx_duration(position))
         self.current_position = position
 
@@ -279,7 +282,7 @@ class XMovement:
 
     def approx_duration(self, positionto):
         # speed approximately 4 studs per second
-        return abs(self.current_position - positionto)/4*10
+        return abs(self.current_position - positionto)/4*2
 
 
 
@@ -302,7 +305,7 @@ class YMovement:
         #stud_distance = (position19tacho - position0tacho) / 18
         # mathematically calculated
         stud_distance = 112.5
-        position0tacho = position19tacho - 19*stud_distance
+        position0tacho = position19tacho - 18*stud_distance
 
         # calculate all positions using Encoder value
         self.positions = []
@@ -314,7 +317,7 @@ class YMovement:
         #self.motor.set_target_encoder(self.positions[position], 60)
         global motorcontrol
         # use the move_to command
-        motorcontrol.move_to(self.port, 60, self.positions[position])
+        motorcontrol.move_to(self.port, 80, self.positions[position])
         time.sleep(self.approx_duration(position))
         self.current_position = position
 
@@ -326,7 +329,7 @@ class YMovement:
 
     def approx_duration(self, positionto):
         # speed approximately 4 studs per second
-        return abs(self.current_position - positionto)/4*10
+        return abs(self.current_position - positionto)/4*2
 
 
 class ZMovement:
@@ -342,10 +345,13 @@ class ZMovement:
         position3tacho = self.motor.get_tacho().block_tacho_count
 
         # MEASURE CORRECT VALUE
-        self.position0tacho = position3tacho - 3180
+        #self.position0tacho = position3tacho - 260
+        # not mathematically computed, but should be roughly correct
+        self.stud_distance = 56.25
+        self.position0tacho = position3tacho - 3*self.stud_distance;
 
         # now, calculate stud distance
-        self.stud_distance = (position3tacho - self.position0tacho) / 3
+        #self.stud_distance = (position3tacho - self.position0tacho) / 3
 
 
     def set_position(self, position):
@@ -353,27 +359,25 @@ class ZMovement:
             return
         #self.motor.set_target_encoder(self.position0tacho.plus(self.stud_distance * position), 120, brake=False)
         global motorcontrol
-        motorcontrol.move_to(self.port, self.position0tacho + self.stud_distance * position, 100)
+        motorcontrol.move_to(self.port, 80, self.position0tacho + self.stud_distance * position)
         time.sleep(self.approx_duration(position))
         self.current_position = position
 
     def reset(self):
         # move to regular position, that is, position 3
         # first move up to position 4, though
-        self.set_position(4)
         self.set_position(3)
         # also move a bit more, since we want to be sure to reset
         #self.motor.set_target_encoder(self.positions[position].plus(-100), 100)
 
     def approx_duration(self, positionto):
         # speed approximately 1 stud per second
-        return abs(self.current_position - positionto)*10
+        return abs(self.current_position - positionto)/2*2
 
 
 def fasten(brick=False):
     # lower with 30 pts, then move in x and y directions, then lower with 20 pts, then move...
     # do this 5 times
-    import time
     time.sleep(3)
     zmovement.motor.set_target_encoder(zmovement.motor.get_tacho().plus(-500), 120, brake=False)
     for i in range(3,6):
@@ -397,4 +401,13 @@ def fasten(brick=False):
     else:
         zmovement.motor.turn(-120, 200)
     time.sleep(1)
+    zmovement.set_position(zmovement.current_position)
+
+
+def pick(brick=False):
+    # just lower the z axis a couple of points
+    global motorcontrol
+    motorcontrol.cmd(zmovement.port, -80, 40)
+    time.sleep(2)
+    # then reset
     zmovement.set_position(zmovement.current_position)
