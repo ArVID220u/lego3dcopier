@@ -182,7 +182,7 @@ def scan():
             is_empty = True
             for x in range(w):
                 for y in range(w):
-                    if layer[x][y] != -1:
+                    if layer[x][y] != 0:
                         is_empty = False
             if is_empty:
                 stop_scanning = True
@@ -242,6 +242,12 @@ class YMovement:
             self.positions.append(stop_position + (y + 7) * stud_distance)
         # then reset
         self.reset()
+
+    def set_position(self, position):
+        bp.BrickPi.MotorEnable[self.motor_port] = 1
+        bp.set_target_encoder(self.motor_port, self.positions[position], 200)
+        bp.BrickPi.MotorEnable[self.motor_port] = 0
+
 
     def find_first_block(self):
         stop_position = self.move_till_stop()
@@ -394,10 +400,9 @@ class Rotation:
             # Add slightly more, due to some degrees of freedom that alter these values
             position = bp.BrickPi.Encoder[self.port] + i*14*720
             if i > 0:
-                position += 240
+                position += 450
             self.positions.append(position)
         self.current_position = 0
-        # we set position to 1 and then back to 0, so that we reset any eventual wrongdoings
         self.set_position(1)
         time.sleep(2)
         self.set_position(0)
@@ -445,6 +450,27 @@ class Height:
         bp.BrickPi.MotorEnable[self.port] = 1
         bp.set_target_encoder(self.port, self.height1, 150)
         bp.BrickPi.MotorEnable[self.port] = 0
+
+
+
+def assume_printer_position():
+    global xmovement, ymovement, height
+    if "height" in globals():
+        height.lower()
+        height.lower()
+        height.reset()
+    if "xmovement" not in globals():
+        xmovement = XMovement(setup.slide_probe_port)
+    xmovement.set_position(5)
+    if "ymovement" not in globals():
+        ymovement = YMovement(setup.eject_probe_port, setup.probe_sensor_port)
+        bp.BrickPi.MotorEnable[setup.eject_probe_port] = 1
+        bp.set_target_encoder(setup.eject_probe_port, bp.BrickPi.Encoder[setup.eject_probe_port] + 17000, 200)
+        bp.BrickPi.MotorEnable[setup.eject_probe_port] = 0
+    else:
+        ymovement.set_position(7)
+
+    
 
     
 
